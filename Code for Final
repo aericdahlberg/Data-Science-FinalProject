@@ -1,13 +1,28 @@
 import numpy as np
+from sklearn.model_selection import train_test_split
 import pandas as pd
-import seaborn as sns
-import statsmodels.api as sm
-import matplotlib.pyplot as plt
+from sklearn.svm import SVR
+import plotly.express as px
+from scipy import stats
+from sklearn.metrics import classification_report
+from sklearn.preprocessing import StandardScaler
 
+df = pd.read_csv("/Users/jonathanhill/Desktop/CS260Final/winequality-red.csv") 
+plt.subplots(figsize = (20,17))
+# This creates the heatmap 
+heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG')
+plt.title("Red Wine Data Heatmap", fontsize= 35, fontweight= "bold")
+plt.savefig("Heatmap.png")
+
+# This creates the histogram of the red wine quality scores
+fig = px.histogram(df,x='quality')
+fig.title('Quality Scores')
+fig.ylabel('observations')
+fig.show()
 
 df = pd.read_csv("winequality-red.csv")
 print(df.head()) #show first few rows
-
+# Creates the figures comparing different variables' affect on quality
 sns.barplot(x ="quality", y ="sulphates", capsize=.1, data = df)
 plt.show()
 sns.barplot(x ="quality", y ="citric acid", capsize=.1, data = df)
@@ -16,18 +31,171 @@ sns.barplot(x ="quality", y ="volatile acidity", capsize=.1, data = df)
 plt.show()
 sns.barplot(x ="quality", y ="alcohol", capsize=.1, data = df)
 plt.show()
+wine = pd.read_csv('winequality-red.csv')
 
 
-plt.subplots(figsize = (20,17))
-
-plt.subplots(figsize = (15, 7))
-sns.set(font_scale = 0.7)
-plt.title("Red Wine Data Heatmap", fontsize= 35, fontweight= "bold")
-heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG')
-plt.savefig("heatmap.svg")
+#normalize data
+for column in wine:
+    if column != 'quality':
+       # wine[column] = StandardScaler().fit_transform(wine[column])
+       wine[column] = stats.zscore(wine[column])
 
 
-######Deep learning#####
+
+print(wine)
+# feratues
+qualities_of = ['fixed acidity','volatile acidity','citric acid','residual sugar','chlorides','free sulfur dioxide','total sulfur dioxide','density','pH','sulphates','alcohol']
+#fig = px.histogram(wine,x='quality')
+
+#split into train and test data
+wine_train=wine.sample(frac=0.8,random_state=200)
+wine_test=wine.drop(wine_train.index)
+
+Y_train = np.array(wine_train['quality'])
+X_train = np.array(wine_train[qualities_of])
+
+Y_test = np.array(wine_test['quality'])
+X_test = np.array(wine_test[qualities_of])
+
+#function to get average quality values
+def input_bar(test, prediction):
+    arr = [0]*9
+    num_arr = [0]*9
+    j = 0
+    for val in test:
+        arr[val] = arr[val] + prediction[j]
+        num_arr[val] = num_arr[val] + 1
+        j = j+ 1
+    j= 0
+    for i in arr:
+        if num_arr[j] != 0:
+            arr[j] = arr[j]/num_arr[j]
+        j = j+ 1
+    return arr
+
+from sklearn import tree
+from sklearn.datasets import load_iris
+
+# Load the data
+iris = load_iris()
+
+
+# Train the classifier
+clf = tree.DecisionTreeClassifier()
+clf.fit(X_train, Y_train)
+
+# Make predictions
+predictions = clf.predict(X_test)
+
+# Evaluate the predictions
+jjj = np.average(np.absolute(np.subtract(Y_test,predictions)))
+print(jjj)
+
+feat_importances = pd.Series(clf.feature_importances_, index=qualities_of)
+feat_importances.nlargest(25).plot(kind='barh',figsize=(10,10))
+
+plt.title("Feature Importance Random Forest")
+plt.xlabel("Permutation Importance")
+plt.ylabel("Corresponding Predicted Quality Level")
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import load_iris
+
+# Load the data
+
+
+# Train the classifier
+clf = RandomForestClassifier(n_estimators=5)
+clf.fit(X_train, Y_train)
+
+# Make predictions
+predictions = clf.predict(X_test)
+
+# Evaluate the predictions
+jjj = np.average(np.absolute(np.subtract(Y_test,predictions)))
+print(jjj)
+
+plt.bar([0,1,2,3,4,5,6,7,8],input_bar(Y_test, predictions))
+plt.title("Random Forest Quality")
+plt.xlabel("Test Quality Level")
+plt.ylabel("Corresponding Predicted Quality Level")
+
+import tensorflow as tf
+from tensorflow import keras
+from keras.models import Sequential
+from keras.layers import Dense
+
+# load the wine quality data
+data = pd.read_csv("wine_quality.csv")
+
+# split the data into input features (X) and target variable (y)
+
+
+# define the model
+model = Sequential()
+model.add(Dense(units=11, activation="relu", input_dim=X_train.shape[1]))
+model.add(Dense(units=1))
+
+# compile the model
+model.compile(loss="mean_squared_error", optimizer="adam")
+
+# train the model
+model.fit(X_train, Y_train, epochs=10, batch_size=32)
+
+model = SVR(kernel='linear')
+
+# Train the model on the data
+model.fit(X_train, Y_train)
+
+predictions = model.predict(X_test)
+#predictions = predictions.astype(int)
+#print(predictions)
+#print(np.sort(Y_test))
+plt.bar([0,1,2,3,4,5,6,7,8],input_bar(Y_test, predictions))
+
+   
+#plt.plot(Y_test,predictions,'bo')
+plt.title("SVR Quality")
+plt.xlabel("Test Quality Level")
+plt.ylabel("Corresponding Predicted Quality Level")
+
+from sklearn.inspection import permutation_importance
+
+perm_importance = permutation_importance(model, X_test, Y_test)
+
+
+features = np.array(qualities_of)
+
+sorted_idx = perm_importance.importances_mean.argsort()
+plt.barh(features[sorted_idx], perm_importance.importances_mean[sorted_idx])
+plt.title("Feature Importance SVR")
+plt.xlabel("Permutation Importance")
+plt.ylabel("Features")
+
+mean absolute value
+averaging = Y_test - np.average(Y_test)
+
+np.average(np.absolute(averaging))
+
+
+# load the wine quality data
+
+
+# split the data into input features (X) and target variable (y)
+
+def baseline_model():
+ # create model
+ model = Sequential()
+ model.add(Dense(11, input_shape=(11,), kernel_initializer='normal', activation='relu'))
+ model.add(Dense(1, kernel_initializer='normal'))
+ # Compile model
+ model.compile(loss='mean_squared_error', optimizer='adam')
+ return model
+# evaluate model
+estimator = KerasRegressor(model=baseline_model, epochs=10, batch_size=2, verbose=0)
+kfold = KFold(n_splits=10)
+results = cross_val_score(estimator, X, Y, cv=kfold, scoring='neg_mean_squared_error')
+print("Baseline: %.2f (%.2f) MSE" % (results.mean(), results.std()))
 
 
 model.compile(loss='mean_absolute_percentage_error', optimizer='adam', metrics=['accuracy'])
@@ -50,15 +218,4 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.show()
-model.add(Dense(12, input_dim=8, activation='relu'))
-model.add(Dense(8, activation='relu'))
-model.add(Dense(1, activation='sigmoid'))
-model.compile(loss='categorical_crossentropy', optimizer='adam')
-
-# train the model for 10 epochs
-history = model.fit(X_train, y_train, epochs=10)
-
-# plot the loss values for each epoch
-plt.plot(history.history['loss'])
 plt.show()
