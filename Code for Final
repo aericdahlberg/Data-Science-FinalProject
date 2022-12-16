@@ -1,0 +1,27 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+
+df = pd.read_csv("winequality-red.csv")
+print(df.head()) #show first few rows
+
+sns.barplot(x ="quality", y ="sulphates", capsize=.1, data = df)
+plt.show()
+sns.barplot(x ="quality", y ="citric acid", capsize=.1, data = df)
+plt.show()
+sns.barplot(x ="quality", y ="volatile acidity", capsize=.1, data = df)
+plt.show()
+sns.barplot(x ="quality", y ="alcohol", capsize=.1, data = df)
+plt.show()
+
+
+plt.subplots(figsize = (20,17))
+
+plt.subplots(figsize = (15, 7))
+sns.set(font_scale = 0.7)
+plt.title("Red Wine Data Heatmap", fontsize= 35, fontweight= "bold")
+heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG')
+plt.savefig("heatmap.svg")
